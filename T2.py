@@ -1,7 +1,6 @@
 import numpy as np
-from scipy import stats
 import matplotlib.pyplot as plt
-from scipy.stats import expon, gaussian_kde
+from scipy.stats import expon, gaussian_kde, skew, mode
 
 
 N = 25 # Размер выборки
@@ -10,6 +9,8 @@ N = 25 # Размер выборки
 
 
 Ставлю 100, 1000 или даже 10_000, и все очень красиво и почти сходится
+
+А еще при задаче d я заметил, что при увеличении аргумента N коэффициент асимметрии уходит к двойке достаточно точно
 """
 B = 1_000 # Бутстраповская переменная.
 """
@@ -31,7 +32,7 @@ def generate_elem() -> float:
     return x
 
 def find_moda(arr: np.array) -> np.float64:
-    return np.float64(stats.mode(arr)[0])
+    return np.float64(mode(arr)[0])
 
 
 def find_median(arr: np.array) -> np.float64:
@@ -158,6 +159,58 @@ def task_c(sample: np.array):
     plt.show()
 
 
+
+def task_d(sample: np.array) -> None:
+    bootstrap_skewness = []
+    skewness = calculate_skewness(sample)
+    for _ in range(B):
+        bootstrap_sample = np.random.choice(sample, size=N, replace=True)
+        bootstrap_skewness.append(skew(bootstrap_sample, bias=False))
+
+    bootstrap_skewness = np.array(bootstrap_skewness)
+
+    kde_skewness = gaussian_kde(bootstrap_skewness)
+
+    # Оцениваем вероятность P(коэффициент асимметрии < 1)
+    prob_skew_less_1 = np.mean(bootstrap_skewness < 1)
+    print(f"Бутстраповская оценка вероятности P(skewness < 1) = {prob_skew_less_1:.4f}")
+
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+
+    """Гистограмма бутстраповских коэффициентов асимметрии"""
+    ax = axes[0]
+    ax.hist(bootstrap_skewness, bins=30, density=True, alpha=0.7, edgecolor='black', label='Бутстрап-skewness')
+    ax.axvline(x=1, color='red', linestyle='--', linewidth=2, label='skewness = 1')
+    ax.axvline(x=skewness, color='green', linestyle='-', linewidth=2, label=f'Исходная skewness = {skewness:.2f}')
+    ax.set_xlabel('Коэффициент асимметрии')
+    ax.set_ylabel('Плотность')
+    ax.set_title(f'Распределение коэффициента асимметрии (бутстрап)\nP(skewness < 1) = {prob_skew_less_1:.4f}')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+
+    """KDE для коэффициента асимметрии с закрашенной областью P(skewness < 1)"""
+    ax = axes[1]
+    x_kde = np.linspace(min(bootstrap_skewness), max(bootstrap_skewness), 200)
+    y_kde = kde_skewness(x_kde)
+    ax.plot(x_kde, y_kde, 'b-', linewidth=2, label='KDE распределения')
+
+    x_fill = x_kde[x_kde < 1]
+    y_fill = y_kde[x_kde < 1]
+    ax.fill_between(x_fill, y_fill, alpha=0.3, color='red', label=f'P(skewness < 1) = {prob_skew_less_1:.4f}')
+
+    ax.axvline(x=1, color='red', linestyle='--', linewidth=1)
+    ax.set_xlabel('Коэффициент асимметрии')
+    ax.set_ylabel('Плотность')
+    ax.set_title('KDE распределения коэффициента асимметрии')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig('imgs/task_d_skewness_bootstrap.png', dpi=150)
+    plt.show()
+
+
+
 if __name__ == '__main__':
     data = np.array([generate_elem() for i in range(N)])
 
@@ -176,8 +229,10 @@ if __name__ == '__main__':
     print("Задача b)")
     print(("="*50) + "\n")
     task_b(data)
+    print("Тут у меня получились только графики")
 
     print("\n\n" + "=" * 50)
     print("ЗАДАНИЕ c: Сравнение распределения среднего (ЦПТ vs Бутстрап)")
     print(("="*50) + "\n")
     task_c(data)
+    task_d(data)
