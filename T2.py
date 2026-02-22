@@ -17,7 +17,7 @@ B = 1_000 # Бутстраповская переменная.
 Я заметил, что если брать B чуть больше, результат получается чуть точнее. 
 
 
-Он тоже завязан на случайных величинах, поэтому даже при B=100_000 местами получается нечто некрасивое
+Бутстрап тоже завязан на случайных величинах(А именно при случайном выборе элеметнов), поэтому даже при B=100_000 местами получается нечто некрасивое
 """
 
 
@@ -211,8 +211,61 @@ def task_d(sample: np.array) -> None:
 
 
 
-def task_e():
-    pass
+def task_e(sample: np.array):
+    theoretical_median = np.log(2)
+    f_median = 0.5
+    median = find_median(sample)
+    asymptotic_se_median = 1 / (2 * np.sqrt(N) * f_median)
+
+    print(f"Теоретическая медиана Exp(1): {theoretical_median:.4f}")
+    print(f"Выборочная медиана: {median:.4f}")
+    print(f"Асимптотическая стандартная ошибка медианы: {asymptotic_se_median:.4f}")
+
+    bootstrap_medians = []
+
+    for _ in range(B):
+        bootstrap_sample = np.random.choice(sample, size=N, replace=True)
+        bootstrap_medians.append(np.median(bootstrap_sample))
+
+    bootstrap_medians = np.array(bootstrap_medians)
+
+    bootstrap_se_median = np.std(bootstrap_medians, ddof=1)
+    print(f"Бутстраповская стандартная ошибка медианы: {bootstrap_se_median:.4f}")
+
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+
+    """Гистограмма бутстраповских медиан и асимптотическое нормальное приближение"""
+    ax = axes[0]
+    ax.hist(bootstrap_medians, bins=30, density=True, alpha=0.7, edgecolor='black', label='Бутстрап-медианы')
+
+    x_norm_median = np.linspace(min(bootstrap_medians), max(bootstrap_medians), 100)
+    y_norm_median_theor = 1/(np.sqrt(2*np.pi)*asymptotic_se_median) * np.exp(-(x_norm_median - theoretical_median)**2/(2*asymptotic_se_median**2))
+    ax.plot(x_norm_median, y_norm_median_theor, 'r-', linewidth=2, label='Асимптот. нормальное (теор. медиана)')
+
+    ax.set_xlabel('Медиана')
+    ax.set_ylabel('Плотность')
+    ax.set_title('Распределение выборочной медианы')
+    ax.set_xlim(0)
+    ax.set_ylim(0)
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+
+    ax = axes[1]
+    kde_median = gaussian_kde(bootstrap_medians)
+    x_kde = np.linspace(min(bootstrap_medians), max(bootstrap_medians), 200)
+    ax.plot(x_kde, kde_median(x_kde), 'b-', linewidth=2, label='бутстрап')
+
+    ax.plot(x_norm_median, y_norm_median_theor, 'r-', linewidth=2, label='Асимптот. нормальное (теор.)')
+
+    ax.set_xlabel('Медиана')
+    ax.set_ylabel('Плотность')
+    ax.set_title('KDE распределения медианы vs асимптотика')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig('imgs/task_e_median_bootstrap.png', dpi=150)
+    plt.show()
 
 
 if __name__ == '__main__':
@@ -250,5 +303,5 @@ if __name__ == '__main__':
     print("\n\n" + "=" * 50)
     print("ЗАДАНИЕ e)")
     print(("="*50) + "\n")
-    task_d(data)
+    task_e(data)
 
