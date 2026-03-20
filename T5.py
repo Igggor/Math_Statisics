@@ -20,8 +20,8 @@ def assimp_method():
     thetta_1 = 2 / 3 * alpha_1
     t1 = -1.96
     t2 = 1.96
-    left = thetta_1 - 4 / 9 * t2 * np.sqrt((alpha_2 - alpha_1 ** 2) / n)
-    right = thetta_1 - 4 / 9 * t1 * np.sqrt((alpha_2 - alpha_1 ** 2) / n)
+    left = thetta_1 - 2 / 3 * t2 * np.sqrt((alpha_2 - alpha_1 ** 2) / n)
+    right = thetta_1 - 2 / 3 * t1 * np.sqrt((alpha_2 - alpha_1 ** 2) / n)
     print(f'Ассимптотический метод (ОММ): ({left}, {right}), длина интервала: {right - left}')
 
 
